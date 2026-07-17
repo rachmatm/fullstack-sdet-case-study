@@ -1,0 +1,123 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: rakamin_development
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rakamin_development"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    environment:
+      RAILS_ENV: development
+      SECRET_KEY_BASE: local-dev-secret-key
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: rakamin_development
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://redis:6379/1
+      ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      APP_BASE_URL: http://localhost:3001
+      WEB_BASE_URL: http://localhost:5173
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_LIVE_MODEL: ${GEMINI_LIVE_MODEL:-gemini-2.0-flash-live-001}
+      GEMINI_FLASH_MODEL: ${GEMINI_FLASH_MODEL:-gemini-2.0-flash-001}
+      GEMINI_PRO_MODEL: ${GEMINI_PRO_MODEL:-gemini-2.0-pro-001}
+      LOCAL_ADMIN_EMAIL: ${LOCAL_ADMIN_EMAIL:-admin@test-corp.local}
+      LOCAL_ADMIN_PASSWORD: ${LOCAL_ADMIN_PASSWORD:-password123!}
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./api:/ai-interview
+      - bundle_cache:/usr/local/bundle
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3001/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  sidekiq:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    environment:
+      RAILS_ENV: development
+      SECRET_KEY_BASE: local-dev-secret-key
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: rakamin_development
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://redis:6379/1
+      ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      APP_BASE_URL: http://localhost:3001
+      WEB_BASE_URL: http://localhost:5173
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_LIVE_MODEL: ${GEMINI_LIVE_MODEL:-gemini-2.0-flash-live-001}
+      GEMINI_FLASH_MODEL: ${GEMINI_FLASH_MODEL:-gemini-2.0-flash-001}
+      GEMINI_PRO_MODEL: ${GEMINI_PRO_MODEL:-gemini-2.0-pro-001}
+      LOCAL_ADMIN_EMAIL: ${LOCAL_ADMIN_EMAIL:-admin@test-corp.local}
+      LOCAL_ADMIN_PASSWORD: ${LOCAL_ADMIN_PASSWORD:-password123!}
+    command: ["bash", "/ai-interview/scripts/docker/worker-entrypoint.sh"]
+    volumes:
+      - ./api:/ai-interview
+      - bundle_cache:/usr/local/bundle
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    environment:
+      VITE_API_BASE_URL: http://localhost:3001/api/v1
+      VITE_WS_BASE_URL: ws://localhost:3001
+      VITE_TENANT_SCHEME: ${VITE_TENANT_SCHEME:-test-corp}
+      VITE_DEV_TENANT_ID: "1"
+      VITE_DEV_TENANT_NAME: Test Corp
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/app
+      - web_node_modules:/app/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  bundle_cache:
+  web_node_modules:

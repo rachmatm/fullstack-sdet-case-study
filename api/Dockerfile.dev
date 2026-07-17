@@ -1,0 +1,24 @@
+FROM ruby:3.3.2
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  build-essential \
+  curl \
+  git \
+  libpq-dev \
+  postgresql-client \
+  tzdata \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /ai-interview
+
+COPY Gemfile Gemfile.lock ./
+
+RUN bundle install --jobs 4
+
+COPY . .
+
+RUN chmod +x scripts/docker/api-entrypoint.sh scripts/docker/worker-entrypoint.sh
+
+EXPOSE 3001
+
+CMD ["bash", "/ai-interview/scripts/docker/api-entrypoint.sh"]

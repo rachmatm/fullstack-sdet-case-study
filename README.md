@@ -55,3 +55,4 @@ Important note:
 - This is the codebase you assess, harden, and release. Treat it as a version about to ship to a client.
 - Work in the `/assessment` folder at the repo root for your written deliverables; code changes go in `api/` or `web/`.
 - See the case-study brief you were given for what to produce and how it is evaluated.
+- Som

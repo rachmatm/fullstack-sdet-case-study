@@ -22,10 +22,17 @@ Implemented components:
 - PR body validation script in `scripts/check-pr-body.sh`
 - CI workflow in `.github/workflows/quality-gate.yml`
 - backend regression specs in `api/spec/requests/api/v1/authentication_spec.rb`
+- backend regression specs in `api/spec/requests/api/v1/sessions_create_spec.rb`
+- backend regression specs in `api/spec/requests/api/v1/sessions_candidate_spec.rb`
+- backend regression specs in `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`
 - backend regression specs in `api/spec/models/session_spec.rb`
 - request-spec host fix in `api/spec/rails_helper.rb`
 - tag-based release verdict script in `scripts/release-verdict.sh`
 - draft release notes in `RELEASE_NOTES.md`
+
+Local verification in this pass:
+
+- the targeted backend regression suite now passes locally with `13 examples, 0 failures`
 
 ## What This System Protects
 
@@ -34,8 +41,9 @@ The current system is designed to protect a narrow but meaningful set of risks:
 1. Missing delivery inputs
 2. Login tenant-selection behavior drift
 3. Candidate invite URL correctness
-4. Frontend build health
-5. Release decision honesty
+4. First runtime session-flow correctness
+5. Frontend build health
+6. Release decision honesty
 
 That is enough to prove a real quality net exists. It is not enough yet to claim broad platform coverage.
 
@@ -82,6 +90,9 @@ Implementation:
 - workflow job: `.github/workflows/quality-gate.yml`
 - specs:
   - `api/spec/requests/api/v1/authentication_spec.rb`
+  - `api/spec/requests/api/v1/sessions_create_spec.rb`
+  - `api/spec/requests/api/v1/sessions_candidate_spec.rb`
+  - `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`
   - `api/spec/models/session_spec.rb`
 
 Current covered behaviors:
@@ -89,6 +100,9 @@ Current covered behaviors:
 - login falls back to the first organization scheme when tenant context is missing
 - login falls back to `test-corp` when no organization scheme is available
 - login preserves an explicit tenant context when one is provided
+- session creation returns a usable invite URL
+- candidate invite-token access returns the expected candidate info and not-found errors
+- audio-complete supports valid end, idempotent repeat, and invalid-token errors
 - invite URL prefers `WEB_BASE_URL`
 - local invite URL falls back to the web app port when needed
 
@@ -181,7 +195,7 @@ The quality system is real now, but still incomplete.
 Main gaps:
 
 - no committed frontend behavioral test suite
-- no deeper backend coverage for session lifecycle
+- no deeper backend coverage for the full live interview lifecycle beyond first create/candidate/audio-complete seams
 - no end-to-end test of assessor and candidate journeys
 - no automated check yet for reconnect behavior or live interview flow
 - no durable product source of truth beyond the assessment artifacts

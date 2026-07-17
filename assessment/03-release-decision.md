@@ -15,7 +15,7 @@ The repository now has a real quality system, but the current evidence still sup
 The release decision is no longer based on guesswork alone. The repository now contains:
 
 - a PR body quality gate
-- backend regression checks for login tenant-selection behavior and invite URL generation
+- backend regression checks for login tenant-selection behavior, invite URL generation, and first runtime session flows
 - a frontend production build gate
 - a tag-based release verdict flow
 - draft release notes
@@ -30,12 +30,16 @@ Evidence now present in the repository:
 - CI workflow in `.github/workflows/quality-gate.yml`
 - backend regression specs in:
   - `api/spec/requests/api/v1/authentication_spec.rb`
+  - `api/spec/requests/api/v1/sessions_create_spec.rb`
+  - `api/spec/requests/api/v1/sessions_candidate_spec.rb`
+  - `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`
   - `api/spec/models/session_spec.rb`
 - request-spec host fix in `api/spec/rails_helper.rb`
 - release verdict logic in `scripts/release-verdict.sh`
 - draft release notes in `RELEASE_NOTES.md`
 - updated audit in `assessment/01-audit.md`
 - updated quality-system description in `assessment/02-quality-system.md`
+- local backend regression verification with `13 examples, 0 failures`
 
 ## What Is Green Enough To Count As Real Progress
 
@@ -43,6 +47,7 @@ The following are real improvements and should count as completed work:
 
 - missing PR inputs can now be blocked automatically
 - login tenant-selection behavior has targeted regression coverage
+- first runtime session flows now have targeted backend regression coverage
 - invite URL generation has targeted regression coverage
 - frontend build health is now checked in CI
 - release verdict generation exists for version tags
@@ -58,7 +63,7 @@ The quality system is real, but it still covers only a small part of the platfor
 Still not covered well enough:
 
 - live interview runtime flow
-- session lifecycle beyond invite URL generation
+- websocket-driven session lifecycle beyond the first create/candidate/audio-complete seams
 - reconnect behavior
 - broader assessor workflows
 - end-to-end UI and API flow confidence

@@ -5,13 +5,13 @@
 # WebSocket upgrades before Rails routing runs.
 #
 # Path mapping:
-#   /ws/sessions/:id/audio    → AudioWebSocketMiddleware  (binary audio proxy)
-#   /ws/sessions/:id/coverage → CoverageWebSocketMiddleware (assessor live monitor)
+#   /ws/sessions/:id/audio    → AudioWebsocketMiddleware  (binary audio proxy)
+#   /ws/sessions/:id/coverage → CoverageWebsocketMiddleware (assessor live monitor)
 
 unless Rails.env.test?
   require_relative '../../app/channels/audio_websocket_middleware'
   require_relative '../../app/channels/coverage_websocket_middleware'
 
-  Rails.application.config.middleware.insert_before TenantResolverMiddleware, AudioWebSocketMiddleware
-  Rails.application.config.middleware.insert_before TenantResolverMiddleware, CoverageWebSocketMiddleware
+  Rails.application.config.middleware.insert_before TenantResolverMiddleware, AudioWebsocketMiddleware
+  Rails.application.config.middleware.insert_before TenantResolverMiddleware, CoverageWebsocketMiddleware
 end

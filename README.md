@@ -48,7 +48,7 @@ Default local login:
 
 Important note:
 
-- interview flows that actually call Gemini still need valid `GEMINI_*` environment variables if you want the live AI interview behavior to work end to end
+- interview flows that actually call Gemini still need valid `GEMINI_*` environment variables if you want the live AI interview behavior to work end to end.
 
 ## Notes for the case study
 

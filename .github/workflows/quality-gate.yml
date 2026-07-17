@@ -21,6 +21,20 @@ jobs:
 
   api-rspec:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: rakamin_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d rakamin_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     defaults:
       run:
         working-directory: api
@@ -28,6 +42,11 @@ jobs:
       RAILS_ENV: test
       SECRET_KEY_BASE: test-secret-key
       ALLOWED_ORIGINS: http://localhost:5173
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: rakamin_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
@@ -36,6 +55,8 @@ jobs:
           bundler-cache: false
       - name: Install backend dependencies
         run: bundle install
+      - name: Prepare test database
+        run: bundle exec rails db:prepare
       - name: Run backend regression specs
         run: bundle exec rspec spec/requests/api/v1/authentication_spec.rb spec/models/session_spec.rb
 

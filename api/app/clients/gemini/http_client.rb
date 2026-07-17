@@ -80,7 +80,7 @@ module Gemini
       end
 
       data = JSON.parse(response.body)
-      text = data.dig('candidates', 0, 'content', 'parts', 0, 'text')
+      text = extract_text(data)
 
       raise ApiError.new("No content in Gemini response") unless text
 
@@ -92,6 +92,15 @@ module Gemini
       rescue JSON::ParserError
         cleaned
       end
+    end
+
+    def extract_text(data)
+      parts = data.dig('candidates', 0, 'content', 'parts')
+
+      Array(parts)
+        .filter_map { |part| part['text'] if part.is_a?(Hash) }
+        .join
+        .presence
     end
   end
 end

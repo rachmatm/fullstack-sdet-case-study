@@ -2,6 +2,30 @@
 
 A two-service application used for the Quality Engineer case study. It is provided as a single repository so the whole thing clones, runs, and releases as one unit.
 
+## Brief
+
+This repository is intended to show how delivery quality can be made visible and repeatable through practical CI/CD and test automation.
+
+The main goal is not only to ship code, but to ship with a shared quality system that:
+
+- runs important checks together in one place
+- reduces repetitive manual verification work
+- helps teams catch edge cases and likely failure paths earlier
+- supports healthier working habits by replacing avoidable re-checking with reliable automation
+
+In practice, that means using the repository to combine:
+
+- code changes
+- regression checks
+- build validation
+- release evidence
+
+The expected outcome is better release confidence, less wasted effort, and faster visibility into possible errors or unstable runtime behavior.
+
+## App Preview
+
+![Application screenshot](./screenshot.png)
+
 ```
 .
 ├── api/    # Backend service (Ruby on Rails, PostgreSQL, Redis/Sidekiq)
@@ -53,5 +77,6 @@ Important note:
 ## Notes for the case study
 
 - This is the codebase you assess, harden, and release. Treat it as a version about to ship to a client.
+- Focus especially on how CI/CD, test automation, and quality checks work together to reduce repetitive work while still exposing important edge cases and likely failure modes.
 - Work in the `/assessment` folder at the repo root for your written deliverables; code changes go in `api/` or `web/`.
 - See the case-study brief you were given for what to produce and how it is evaluated.

@@ -32,8 +32,9 @@ VITE_DEV_TOKEN=<your-jwt-here>
 VITE_DEV_TENANT_ID=1
 VITE_DEV_TENANT_NAME=Demo Tenant
 
-# Preferred explicit tenant identifier for login and authenticated requests
-VITE_TENANT_SCHEME=demo-tenant
+# Optional explicit tenant identifier for login and authenticated requests
+# If omitted, the backend falls back to the first organization scheme or `test-corp`
+VITE_TENANT_SCHEME=
 ```
 
 ```bash
@@ -60,7 +61,7 @@ The app will be available at **http://localhost:5173**.
 | `VITE_DEV_TOKEN`           | Yes      | JWT for authenticating in local development         |
 | `VITE_DEV_TENANT_ID`       | Yes      | Tenant ID for multi-tenant context                  |
 | `VITE_DEV_TENANT_NAME`     | Yes      | Tenant display name                                 |
-| `VITE_TENANT_SCHEME`       | Recommended | Explicit tenant identifier sent to the API for login and authenticated requests |
+| `VITE_TENANT_SCHEME`       | No | Optional explicit tenant identifier sent to the API for login and authenticated requests |
 | `VITE_SPEED_TEST_PING_URL` | No       | Custom ping endpoint for hardware check speed test  |
 | `VITE_SPEED_TEST_UPLOAD_URL`| No      | Custom upload endpoint for speed test               |
 | `VITE_REQUIRE_CAMERA`      | No       | Set to `"true"` to enforce camera check (default: `"false"`) |

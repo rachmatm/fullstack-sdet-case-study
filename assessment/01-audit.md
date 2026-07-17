@@ -7,7 +7,7 @@ Current release call: `blocked`
 ## Executive Summary
 
 - A real quality gate now exists in the repository.
-- Backend regression checks have been added for two high-risk areas: tenant-aware login and invite URL generation.
+- Backend regression checks have been added for login tenant-selection behavior, invite URL generation, and the first runtime session flows.
 - A frontend production build gate now exists.
 - A tag-based release verdict flow now exists.
 - Draft release notes now exist.
@@ -47,15 +47,21 @@ Status:
 
 ### 2. Backend regression checks have been added
 
-The repository now has targeted regression coverage for two high-risk behaviors:
+The repository now has targeted regression coverage for several high-risk behaviors:
 
 - login tenant-selection behavior
 - invite URL generation
+- session creation and invite response
+- candidate invite-token entry
+- candidate audio-complete session ending
 
 References:
 
 - `.github/workflows/quality-gate.yml`
 - `api/spec/requests/api/v1/authentication_spec.rb`
+- `api/spec/requests/api/v1/sessions_create_spec.rb`
+- `api/spec/requests/api/v1/sessions_candidate_spec.rb`
+- `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`
 - `api/spec/models/session_spec.rb`
 
 Important note:
@@ -67,6 +73,7 @@ Status:
 
 - Implemented
 - CI wiring for PostgreSQL-backed `rspec` was added in the workflow and should be treated as part of the same quality-system work
+- The targeted regression suite now passes locally with `13 examples, 0 failures`
 
 ### 3. Frontend production build verification has been added
 
@@ -118,12 +125,22 @@ The following issues were addressed during this pass:
 
 - login tenant-selection behavior was restored to the original fallback-based implementation and documented with regression coverage
 - invite URL host risk
+- first runtime coverage was added for session create, candidate entry, and audio-complete flows
+- Gemini multipart response parsing
+- Gemini-driven portfolio regeneration safety
 - docs and frontend backend-port mismatch
 - dead frontend signup contract drift
 
 Related references:
 
 - `api/spec/requests/api/v1/authentication_spec.rb`
+- `api/spec/requests/api/v1/sessions_create_spec.rb`
+- `api/spec/requests/api/v1/sessions_candidate_spec.rb`
+- `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`
+- `api/spec/clients/gemini/http_client_spec.rb`
+- `api/spec/services/portfolios/generator_spec.rb`
+- `api/app/clients/gemini/http_client.rb`
+- `api/app/services/portfolios/generator.rb`
 - `api/spec/models/session_spec.rb`
 - `api/spec/rails_helper.rb`
 - `api/README.md`
@@ -140,7 +157,7 @@ Status:
 
 Impact:
 
-The repo now has a real quality gate, but it still covers only a small slice of platform behavior. Critical flows such as the live interview session, reconnect behavior, broader assessor workflows, and richer end-to-end API/UI journeys are still not protected by automated checks.
+The repo now has a real quality gate, and it now covers several meaningful runtime seams, but it still covers only a limited slice of overall platform behavior. Critical flows such as the live interview websocket lifecycle, reconnect behavior, broader assessor workflows, and richer end-to-end UI/API journeys are still not protected by automated checks.
 
 Why this is `P1`:
 
@@ -149,7 +166,7 @@ The platform is no longer missing a quality net entirely, but the current net is
 Evidence:
 
 - PR input validation exists in `.github/workflows/quality-gate.yml` and `scripts/check-pr-body.sh`
-- backend regression checks exist in `api/spec/requests/api/v1/authentication_spec.rb` and `api/spec/models/session_spec.rb`
+- backend regression checks now exist in `api/spec/requests/api/v1/authentication_spec.rb`, `api/spec/requests/api/v1/sessions_create_spec.rb`, `api/spec/requests/api/v1/sessions_candidate_spec.rb`, `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`, and `api/spec/models/session_spec.rb`
 - frontend build validation exists in `.github/workflows/quality-gate.yml`
 - release verdict logic exists in `scripts/release-verdict.sh`
 
@@ -185,12 +202,18 @@ An authenticated user could previously be bound to the wrong tenant context, whi
 Evidence:
 
 - login still falls back to the first organization scheme, or to `test-corp`, when no explicit tenant context is provided in `api/app/controllers/api/v1/authentication_controller.rb`
-- login regression coverage now documents this fallback behavior in `api/spec/requests/api/v1/authentication_spec.rb`
+- login regression coverage now documents explicit tenant use plus both fallback paths in `api/spec/requests/api/v1/authentication_spec.rb`
 - request-spec host handling was corrected in `api/spec/rails_helper.rb`
 
 Final status:
 
 - Remaining
+
+Reason for status:
+
+- this risk is still present in the product behavior
+- the work in this pass restored the original fallback logic and added regression coverage
+- it did not remove the underlying possibility of binding login to a fallback tenant
 
 ### R-004 `P1 Major` - Invite URL host risk
 
@@ -202,10 +225,17 @@ Evidence of fix:
 
 - invite URL regression coverage exists in `api/spec/models/session_spec.rb`
 - setup and environment docs now distinguish backend and frontend base URLs in `api/README.md`
+- the invite URL code path now prefers `WEB_BASE_URL` and explicitly maps local `APP_BASE_URL` from port `3001` to web port `5173` in `api/app/models/session.rb`
 
 Final status:
 
 - Fixed, pending broader runtime verification
+
+Reason for status:
+
+- the risky behavior was changed in code, not only documented
+- the new host-selection logic is covered by regression tests
+- runtime verification is still useful, but the original wrong-host path has been directly addressed
 
 ### R-005 `P2 Minor` - Local setup documentation drift
 
@@ -245,6 +275,45 @@ Dormant frontend auth code that does not match backend routes creates unnecessar
 Evidence of fix:
 
 - the stale signup path was removed from `web/src/services/auth.ts`
+
+Final status:
+
+- Fixed
+
+### R-008 `P1 Major` - Malformed Gemini portfolio regeneration could erase the last good candidate portfolio
+
+Impact:
+
+A recruiter or assessor could open a candidate portfolio that was previously usable, trigger a regeneration or background retry, and then lose the entire prior portfolio because Gemini returned one malformed skill row. In real usage that means the most recent structured evidence for a candidate can disappear during review, forcing manual re-evaluation or delaying a hiring decision.
+
+Why this is `P1`:
+
+This is not only an internal job failure. It can directly remove previously available decision-support data for an active candidate review workflow.
+
+Evidence of fix:
+
+- portfolio regeneration in `api/app/services/portfolios/generator.rb` now validates the full Gemini payload before replacing existing portfolio skills
+- portfolio replacement is now done atomically so a failed write cannot wipe the previous snapshot
+- regression coverage was added in `api/spec/services/portfolios/generator_spec.rb`
+
+Final status:
+
+- Fixed
+
+### R-009 `P1 Major` - Multipart Gemini responses could be truncated before downstream parsing
+
+Impact:
+
+Gemini can return structured text across multiple content parts. If the app reads only the first part, production behavior can degrade in several ways: fit-gap narratives can be cut off, portfolio generation can fail on partial JSON, and downstream AI-derived artifacts can become incomplete or inconsistent even though Gemini actually returned the full answer.
+
+Why this is `P1`:
+
+This affects a shared Gemini client used by multiple services. A single parser assumption can therefore corrupt several AI-backed product outputs at once.
+
+Evidence of fix:
+
+- the shared parser in `api/app/clients/gemini/http_client.rb` now joins all text parts before parsing
+- regression coverage was added in `api/spec/clients/gemini/http_client_spec.rb`
 
 Final status:
 

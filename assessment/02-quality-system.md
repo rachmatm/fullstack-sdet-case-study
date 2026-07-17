@@ -21,11 +21,22 @@ Implemented components:
 - PR template in `.github/PULL_REQUEST_TEMPLATE.md`
 - PR body validation script in `scripts/check-pr-body.sh`
 - CI workflow in `.github/workflows/quality-gate.yml`
+- shared Gemini response hardening in `api/app/clients/gemini/http_client.rb`
+- Gemini portfolio-regeneration hardening in `api/app/services/portfolios/generator.rb`
+- backend regression specs in `api/spec/clients/gemini/http_client_spec.rb`
 - backend regression specs in `api/spec/requests/api/v1/authentication_spec.rb`
+- backend regression specs in `api/spec/requests/api/v1/sessions_create_spec.rb`
+- backend regression specs in `api/spec/requests/api/v1/sessions_candidate_spec.rb`
+- backend regression specs in `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`
 - backend regression specs in `api/spec/models/session_spec.rb`
+- backend regression specs in `api/spec/services/portfolios/generator_spec.rb`
 - request-spec host fix in `api/spec/rails_helper.rb`
 - tag-based release verdict script in `scripts/release-verdict.sh`
 - draft release notes in `RELEASE_NOTES.md`
+
+Local verification in this pass:
+
+- the targeted backend regression suite now passes locally with `13 examples, 0 failures`
 
 ## What This System Protects
 
@@ -34,8 +45,11 @@ The current system is designed to protect a narrow but meaningful set of risks:
 1. Missing delivery inputs
 2. Login tenant-selection behavior drift
 3. Candidate invite URL correctness
-4. Frontend build health
-5. Release decision honesty
+4. First runtime session-flow correctness
+5. Shared Gemini response parsing correctness
+6. Candidate portfolio regeneration safety
+7. Frontend build health
+8. Release decision honesty
 
 That is enough to prove a real quality net exists. It is not enough yet to claim broad platform coverage.
 
@@ -81,16 +95,27 @@ Implementation:
 
 - workflow job: `.github/workflows/quality-gate.yml`
 - specs:
+  - `api/spec/clients/gemini/http_client_spec.rb`
   - `api/spec/requests/api/v1/authentication_spec.rb`
+  - `api/spec/requests/api/v1/sessions_create_spec.rb`
+  - `api/spec/requests/api/v1/sessions_candidate_spec.rb`
+  - `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`
   - `api/spec/models/session_spec.rb`
+  - `api/spec/services/portfolios/generator_spec.rb`
 
 Current covered behaviors:
 
 - login falls back to the first organization scheme when tenant context is missing
 - login falls back to `test-corp` when no organization scheme is available
 - login preserves an explicit tenant context when one is provided
+- session creation returns a usable invite URL
+- candidate invite-token access returns the expected candidate info and not-found errors
+- audio-complete supports valid end, idempotent repeat, and invalid-token errors
 - invite URL prefers `WEB_BASE_URL`
 - local invite URL falls back to the web app port when needed
+- shared Gemini REST responses are joined across multiple content parts before downstream parsing
+- portfolio regeneration validates Gemini output before replacing the last good portfolio snapshot
+- portfolio replacement is atomic, so malformed Gemini output cannot wipe a previously usable candidate portfolio
 
 Supporting CI work added in the same pass:
 
@@ -103,7 +128,7 @@ Supporting CI work added in the same pass:
 Why it matters:
 
 - these are not cosmetic checks
-- they document and protect a high-risk authentication seam plus candidate access paths
+- they document and protect a high-risk authentication seam, candidate access paths, and two AI-output integrity paths that affect hiring workflows
 
 ### 3. Frontend build gate
 
@@ -168,6 +193,8 @@ These checks were selected because they map directly to the highest-confidence f
 
 - login tenant-selection behavior was a real integrity risk
 - invite URL generation was a real flow risk
+- Gemini multipart response truncation was a shared AI-output risk
+- Gemini portfolio overwrite on malformed output was a real reviewer-workflow risk
 - PR input quality was missing entirely
 - release verdict logic did not exist
 - frontend build proof was missing from CI
@@ -181,7 +208,7 @@ The quality system is real now, but still incomplete.
 Main gaps:
 
 - no committed frontend behavioral test suite
-- no deeper backend coverage for session lifecycle
+- no deeper backend coverage for the full live interview lifecycle beyond first create/candidate/audio-complete seams
 - no end-to-end test of assessor and candidate journeys
 - no automated check yet for reconnect behavior or live interview flow
 - no durable product source of truth beyond the assessment artifacts

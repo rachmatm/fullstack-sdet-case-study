@@ -319,10 +319,59 @@ Final status:
 
 - Fixed
 
+### R-010 `P0 Critical` - Live interview can terminate too early and leave unusable assessment results
+
+Impact:
+
+This is a candidate-facing and assessor-facing runtime failure. A candidate can start an interview, lose the session far earlier than the configured assessment duration, and leave behind a transcript that is too thin to support a credible evaluation. From the admin side, the resulting portfolio can fail to generate or degrade into weak skill levels and low-signal fit-gap output, which makes the final assessment result unreliable.
+
+Observed user-visible failure pattern:
+
+- the interview ended too early
+- the transcript was too thin
+- portfolio generation failed or produced weak skill levels
+
+Why this is `P0`:
+
+If this happens in production, the core product promise fails. The candidate experience is interrupted, the assessor loses confidence in the result, and the platform can produce an invalid hiring artifact from an incomplete interview. This is not a minor regression or a reporting issue. It is a top-priority runtime failure in the main value path of the system.
+
+Likely contributing causes to investigate:
+
+- Gemini websocket or runtime error during the live interview loop
+- reconnect exhaustion during browser or Gemini session recovery
+- backend session termination with end reason `error`
+
+Important note:
+
+- these causes are currently hypotheses based on the observed symptom pattern and the known session lifecycle paths
+- they should be confirmed with Docker runtime logs from `api` and `sidekiq` during reproduction
+- the next strongest move is to capture the actual `api` and `sidekiq` logs from one failed short interview and turn this `P0` from a suspected runtime blocker into a confirmed root-cause finding
+
+Initial evidence path:
+
+- candidate timer and interview state handling in `web/src/pages/interview/InterviewPage.tsx`
+- warning-only timer threshold in `web/src/components/interview/InterviewTimer.tsx`
+- live session ending paths in `api/app/channels/audio_websocket_middleware.rb`
+- session termination and portfolio enqueueing in `api/app/services/sessions/end_handler.rb`
+- portfolio generation flow in `api/app/services/portfolios/generator.rb`
+- fit-gap generation flow in `api/app/services/fit_gap/engine.rb`
+
+Final status:
+
+- Remaining
+
+Reason for status:
+
+- the symptom was observed during manual testing of the live interview flow
+- the exact root cause has not yet been confirmed with runtime logs
+- until the session-ending path is verified and stabilized, this remains a release-blocking production risk
+
 ## Remaining Work Before I Would Call This Release-Ready
 
 - keep the blocked and passing PR examples visible as evidence
 - keep the red-to-green commit story clear in Git history
 - complete final green CI proof for the latest passing branch
+- investigate and stabilize the premature live-interview termination path with runtime logs
+- capture the actual `api` and `sidekiq` logs from one failed short interview and convert the current `P0` suspicion into a confirmed root-cause finding
 - add broader coverage for at least one real end-to-end interviewer or candidate flow if time allows
 - keep the release-tag evidence visible once the final tag-based run is executed

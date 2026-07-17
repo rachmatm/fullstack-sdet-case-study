@@ -126,6 +126,8 @@ The following issues were addressed during this pass:
 - login tenant-selection behavior was restored to the original fallback-based implementation and documented with regression coverage
 - invite URL host risk
 - first runtime coverage was added for session create, candidate entry, and audio-complete flows
+- Gemini multipart response parsing
+- Gemini-driven portfolio regeneration safety
 - docs and frontend backend-port mismatch
 - dead frontend signup contract drift
 
@@ -135,6 +137,10 @@ Related references:
 - `api/spec/requests/api/v1/sessions_create_spec.rb`
 - `api/spec/requests/api/v1/sessions_candidate_spec.rb`
 - `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`
+- `api/spec/clients/gemini/http_client_spec.rb`
+- `api/spec/services/portfolios/generator_spec.rb`
+- `api/app/clients/gemini/http_client.rb`
+- `api/app/services/portfolios/generator.rb`
 - `api/spec/models/session_spec.rb`
 - `api/spec/rails_helper.rb`
 - `api/README.md`
@@ -269,6 +275,45 @@ Dormant frontend auth code that does not match backend routes creates unnecessar
 Evidence of fix:
 
 - the stale signup path was removed from `web/src/services/auth.ts`
+
+Final status:
+
+- Fixed
+
+### R-008 `P1 Major` - Malformed Gemini portfolio regeneration could erase the last good candidate portfolio
+
+Impact:
+
+A recruiter or assessor could open a candidate portfolio that was previously usable, trigger a regeneration or background retry, and then lose the entire prior portfolio because Gemini returned one malformed skill row. In real usage that means the most recent structured evidence for a candidate can disappear during review, forcing manual re-evaluation or delaying a hiring decision.
+
+Why this is `P1`:
+
+This is not only an internal job failure. It can directly remove previously available decision-support data for an active candidate review workflow.
+
+Evidence of fix:
+
+- portfolio regeneration in `api/app/services/portfolios/generator.rb` now validates the full Gemini payload before replacing existing portfolio skills
+- portfolio replacement is now done atomically so a failed write cannot wipe the previous snapshot
+- regression coverage was added in `api/spec/services/portfolios/generator_spec.rb`
+
+Final status:
+
+- Fixed
+
+### R-009 `P1 Major` - Multipart Gemini responses could be truncated before downstream parsing
+
+Impact:
+
+Gemini can return structured text across multiple content parts. If the app reads only the first part, production behavior can degrade in several ways: fit-gap narratives can be cut off, portfolio generation can fail on partial JSON, and downstream AI-derived artifacts can become incomplete or inconsistent even though Gemini actually returned the full answer.
+
+Why this is `P1`:
+
+This affects a shared Gemini client used by multiple services. A single parser assumption can therefore corrupt several AI-backed product outputs at once.
+
+Evidence of fix:
+
+- the shared parser in `api/app/clients/gemini/http_client.rb` now joins all text parts before parsing
+- regression coverage was added in `api/spec/clients/gemini/http_client_spec.rb`
 
 Final status:
 

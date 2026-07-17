@@ -149,31 +149,59 @@ module Portfolios
 
     def save_skills(portfolio, response)
       data = response.is_a?(Hash) ? response : JSON.parse(response)
+      records = build_skill_records(portfolio, data)
 
-      # Destroy existing skills (idempotent regeneration)
-      portfolio.portfolio_skills.destroy_all
+      invalid_record = records.find { |record| !record.valid? }
+      raise ActiveRecord::RecordInvalid, invalid_record if invalid_record
 
-      (data['configured_skills'] || []).each do |skill_data|
-        portfolio.portfolio_skills.create!(
+      PortfolioSkill.transaction do
+        # Replace the generated portfolio atomically so a malformed Gemini
+        # payload cannot wipe out the last good portfolio snapshot.
+        portfolio.portfolio_skills.destroy_all
+        records.each(&:save!)
+      end
+    end
+
+    def build_skill_records(portfolio, data)
+      configured = build_records(
+        portfolio,
+        data['configured_skills'] || [],
+        is_discovered: false
+      ) do |skill_data|
+        {
           skill_id:           skill_data['skill_id'],
-          skill_label:        skill_data['skill_label'],
-          is_discovered:      false,
-          ai_level:           skill_data['level'].to_i.clamp(1, 5),
-          ai_confidence:      skill_data['confidence'],
-          evidence:           Array(skill_data['evidence']).first(3),
-          competency_summary: skill_data['competency_summary']
-        )
+          skill_label:        skill_data['skill_label']
+        }
       end
 
-      (data['discovered_skills'] || []).each do |skill_data|
-        portfolio.portfolio_skills.create!(
+      discovered = build_records(
+        portfolio,
+        data['discovered_skills'] || [],
+        is_discovered: true
+      ) do |skill_data|
+        {
           skill_id:           nil,
-          skill_label:        skill_data['skill_label'],
-          is_discovered:      true,
+          skill_label:        skill_data['skill_label']
+        }
+      end
+
+      configured + discovered
+    end
+
+    def build_records(portfolio, rows, is_discovered:)
+      raise ArgumentError, 'Gemini skills payload must be an array' unless rows.is_a?(Array)
+
+      rows.map do |skill_data|
+        raise ArgumentError, 'Gemini skill row must be an object' unless skill_data.is_a?(Hash)
+
+        PortfolioSkill.new(
+          portfolio:          portfolio,
+          is_discovered:      is_discovered,
           ai_level:           skill_data['level'].to_i.clamp(1, 5),
           ai_confidence:      skill_data['confidence'],
           evidence:           Array(skill_data['evidence']).first(3),
-          competency_summary: skill_data['competency_summary']
+          competency_summary: skill_data['competency_summary'],
+          **yield(skill_data)
         )
       end
     end

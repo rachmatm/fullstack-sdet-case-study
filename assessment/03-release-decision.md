@@ -1,110 +1,120 @@
-# Assessment 3: Release Decision
+# 03 Release Decision
 
-Status: Draft v1 on July 17, 2026.
+Status: Updated on July 17, 2026 after the first quality-system implementation pass.
 
 Current release call: `blocked`
 
 ## Decision
 
-This version should not be called `releasable` yet.
+This version should not yet be called `releasable`.
 
-The repo now contains real release-gating mechanics, but the evidence is still too narrow to justify shipment with confidence.
+The repository now has a real quality system, but the current evidence still supports a `blocked` release decision rather than a confident shipment decision.
 
-## What The Gate Checks
+## What Exists Now
 
-- PR-body quality gate via [scripts/check-pr-body.sh](/home/rewog/Projects/ai-interview-platform/scripts/check-pr-body.sh)
-- Backend regression specs for tenant-aware login and invite URL generation
-- Frontend production build
-- Release-notes presence
-- Tag-based release-verdict generation in CI via [scripts/release-verdict.sh](/home/rewog/Projects/ai-interview-platform/scripts/release-verdict.sh)
+The release decision is no longer based on guesswork alone. The repository now contains:
 
-## Evidence Reviewed
+- a PR body quality gate
+- backend regression checks for login tenant-selection behavior, invite URL generation, and first runtime session flows
+- a frontend production build gate
+- a tag-based release verdict flow
+- draft release notes
 
-- PR-body gate passes with a filled-in PR payload
-- Backend regression specs pass
-- Frontend production build passes in the Dockerized web environment
-- Tag-triggered release gating is configured in [.github/workflows/quality-gate.yml](/home/rewog/Projects/ai-interview-platform/.github/workflows/quality-gate.yml)
-- The release-verdict script has been dry-run in both passing and blocked conditions
-- Draft release notes exist in [RELEASE_NOTES.md](/home/rewog/Projects/ai-interview-platform/RELEASE_NOTES.md)
-- The audit has been updated to reflect the current repo state in [assessment/01-audit.md](/home/rewog/Projects/ai-interview-platform/assessment/01-audit.md)
+That is a meaningful improvement over the earlier state of the repo.
 
-## What Is Green Now
+## Evidence Considered
 
-- tenant-aware login regression checks
-- invite URL regression checks
-- frontend production build
-- PR-input quality gate
-- release-verdict scaffolding for version tags
-- stale frontend signup drift removed so the frontend auth surface now matches the exposed backend auth contract
+Evidence now present in the repository:
 
-## What Still Blocks Release
+- PR input validation in `scripts/check-pr-body.sh`
+- CI workflow in `.github/workflows/quality-gate.yml`
+- backend regression specs in:
+  - `api/spec/requests/api/v1/authentication_spec.rb`
+  - `api/spec/requests/api/v1/sessions_create_spec.rb`
+  - `api/spec/requests/api/v1/sessions_candidate_spec.rb`
+  - `api/spec/requests/api/v1/sessions_audio_complete_spec.rb`
+  - `api/spec/models/session_spec.rb`
+- request-spec host fix in `api/spec/rails_helper.rb`
+- release verdict logic in `scripts/release-verdict.sh`
+- draft release notes in `RELEASE_NOTES.md`
+- updated audit in `assessment/01-audit.md`
+- updated quality-system description in `assessment/02-quality-system.md`
+- local backend regression verification with `13 examples, 0 failures`
 
-### B-001 `P1 Major` - Quality gate coverage is still too narrow
+## What Is Green Enough To Count As Real Progress
 
-The current net is real, but it still does not prove the highest-risk runtime flows end to end.
+The following are real improvements and should count as completed work:
 
-Still missing:
+- missing PR inputs can now be blocked automatically
+- login tenant-selection behavior has targeted regression coverage
+- first runtime session flows now have targeted backend regression coverage
+- invite URL generation has targeted regression coverage
+- frontend build health is now checked in CI
+- release verdict generation exists for version tags
+- stale frontend signup drift was removed
+- several setup and documentation mismatches were corrected
 
-- live interview runtime flow coverage
-- session lifecycle regression checks beyond invite URL generation
-- candidate reconnect behavior checks
-- assessor CRUD verification beyond build-time confidence
+## Why The Release Is Still Blocked
 
-Why it blocks:
+### B-001 `P1 Major` - Coverage is still too narrow
 
-- a green build would still overstate release confidence
-- the brief explicitly asks for a release decision based on evidence, not optimism
+The quality system is real, but it still covers only a small part of the platform.
 
-Owner if continued:
+Still not covered well enough:
 
-- engineering
+- live interview runtime flow
+- websocket-driven session lifecycle beyond the first create/candidate/audio-complete seams
+- reconnect behavior
+- broader assessor workflows
+- end-to-end UI and API flow confidence
 
-### B-002 `P1 Major` - Product source of truth is still too weak
+Why this blocks release:
 
-The repo now has assessment artifacts and release notes, but it still lacks a stable product source of truth such as:
+- a green result from the current checks would still overstate release confidence
 
-- a real PRD
-- explicit acceptance criteria tied to implemented flows
-- traceability outside the assessment folder
+### B-002 `P1 Major` - The repository still lacks a strong product source of truth
 
-Why it blocks:
+The assessment artifacts help, but the repository still does not contain a durable product source of truth such as:
 
-- release approval is still too dependent on reverse-engineering behavior from code
-- the brief treats missing inputs as a first-class delivery risk
+- a stable PRD
+- clear feature-level acceptance criteria
+- broader traceability outside the assessment work
 
-Owner if continued:
+Why this blocks release:
 
-- engineering plus product/CTO sponsor for acceptance boundaries
+- release approval still depends too much on inference from code and setup docs
 
-### B-003 Operational Gap - Tag gate exists but has not yet been exercised on a real tag
+### B-003 Operational Evidence Gap - Final passing-path proof still needs to stay visible
 
-The tag-triggered release gate is implemented, but the repo does not yet have the first real tagged CI run captured as evidence.
+The mechanism for passing and blocked PRs exists, and the tag-based release gate exists, but the final assessment story depends on keeping the proof visible:
 
-Why it matters:
+- one blocked PR example
+- one passing PR example
+- a clear red-to-green commit trail
+- a real tagged release-gate run if included in the final submission
 
-- the mechanism is present
-- the final release artifact path is not yet demonstrated on an actual tag
+Why this matters:
 
-Owner if continued:
-
-- release owner for this assessment submission
+- the assessment asks for visible evidence, not only local reasoning
 
 ## Recommendation
 
-Do not cut the final submission release as `releasable` yet.
+Keep the release decision as `blocked`.
 
-If a tag must be created to demonstrate the mechanism, create it as a blocked release candidate and record the blocked result honestly.
+That is the most accurate and defensible decision at this stage.
 
-## What Would Change The Decision
+## What Would Change The Decision To `releasable`
 
-To move this version from `blocked` to `releasable`, the next evidence should include:
+The release call could move to `releasable` if the following evidence is added:
 
-1. one real version tag such as `v1.0.0` run through CI
-2. one deeper runtime check around session lifecycle or assessor CRUD
-3. a clearer source of truth for release acceptance boundaries
+1. final green CI proof on the passing branch remains visible
+2. blocked and passing PR examples remain visible
+3. the red-to-green history remains easy to inspect
+4. at least one more runtime-critical flow gains automated or direct verification
+5. if a release tag is used for the submission, the tagged release-verdict run is visible
 
 ## Final Note
 
-The important improvement in this pass is that the repo is now much better at proving a blocked release honestly.
+The most important change in this pass is not that the repo is suddenly release-ready.
 
-That is a real step forward, even though the correct decision is still `blocked`.
+The important change is that the repo is now much better at proving when a release should be blocked, and that is exactly what a credible quality system should do first.

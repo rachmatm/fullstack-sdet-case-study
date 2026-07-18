@@ -24,12 +24,46 @@ export const DEFAULT_THRESHOLDS: SpeedThresholds = {
 
 const SPEED_TEST_PING_URL = import.meta.env.VITE_SPEED_TEST_PING_URL as string | undefined;
 const SPEED_TEST_UPLOAD_URL = import.meta.env.VITE_SPEED_TEST_UPLOAD_URL as string | undefined;
+const SPEED_TEST_TIMEOUT_MS = Number(import.meta.env.VITE_SPEED_TEST_TIMEOUT_MS ?? 4000);
+
+function isLocalManualEnvironment(): boolean {
+    if (typeof window === "undefined") return false;
+    const { hostname } = window.location;
+
+    if (["localhost", "127.0.0.1", "::1"].includes(hostname)) return true;
+    if (hostname.endsWith(".local")) return true;
+    if (/^10\.\d+\.\d+\.\d+$/.test(hostname)) return true;
+    if (/^192\.168\.\d+\.\d+$/.test(hostname)) return true;
+
+    const match = hostname.match(/^172\.(\d+)\.\d+\.\d+$/);
+    if (match) {
+        const secondOctet = Number(match[1]);
+        if (secondOctet >= 16 && secondOctet <= 31) return true;
+    }
+
+    return false;
+}
+
+async function fetchWithTimeout(
+    input: RequestInfo | URL,
+    init: RequestInit = {},
+    timeoutMs = SPEED_TEST_TIMEOUT_MS
+): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        return await fetch(input, { ...init, signal: controller.signal });
+    } finally {
+        window.clearTimeout(timeoutId);
+    }
+}
 
 async function measurePing(): Promise<number> {
     if (SPEED_TEST_PING_URL) {
         try {
             const start = performance.now();
-            await fetch(SPEED_TEST_PING_URL, { cache: "no-cache" });
+            await fetchWithTimeout(SPEED_TEST_PING_URL, { cache: "no-cache" });
             return performance.now() - start;
         } catch {
             return 999;
@@ -43,7 +77,7 @@ async function measurePing(): Promise<number> {
     for (const url of testUrls) {
         try {
             const start = performance.now();
-            await fetch(url, { mode: "no-cors", cache: "no-cache" });
+            await fetchWithTimeout(url, { mode: "no-cors", cache: "no-cache" });
             return performance.now() - start;
         } catch {
             continue;
@@ -61,7 +95,7 @@ async function measureDownloadSpeed(): Promise<number> {
     for (const testFile of testFiles) {
         try {
             const start = performance.now();
-            const response = await fetch(testFile.url, { cache: "no-cache" });
+            const response = await fetchWithTimeout(testFile.url, { cache: "no-cache" });
             if (response.ok) {
                 await response.blob();
                 const seconds = (performance.now() - start) / 1000;
@@ -74,7 +108,7 @@ async function measureDownloadSpeed(): Promise<number> {
     // Rough fallback
     try {
         const start = performance.now();
-        await fetch("https://www.google.com/favicon.ico", { mode: "no-cors", cache: "no-cache" });
+        await fetchWithTimeout("https://www.google.com/favicon.ico", { mode: "no-cors", cache: "no-cache" });
         const duration = (performance.now() - start) / 1000;
         return duration < 1 ? 2 : duration < 2 ? 1 : 0.5;
     } catch {
@@ -95,7 +129,7 @@ async function measureUploadSpeed(): Promise<number> {
             const formData = new FormData();
             formData.append("test", uploadData);
             const start = performance.now();
-            await fetch(endpoint, { method: "POST", body: formData });
+            await fetchWithTimeout(endpoint, { method: "POST", body: formData });
             const seconds = (performance.now() - start) / 1000;
             return uploadSizeMB / seconds;
         } catch {
@@ -130,6 +164,22 @@ export async function testInternetSpeed(
     thresholds: SpeedThresholds = DEFAULT_THRESHOLDS
 ): Promise<InternetSpeedResult> {
     try {
+        // Local manual and Docker-based runs should not be blocked by public
+        // speed-test endpoints that may hang behind ad blockers, VPNs, or
+        // restrictive networks. If the app is already loaded on localhost and
+        // the browser reports online, allow the interview flow to continue.
+        if (isLocalManualEnvironment() && navigator.onLine) {
+            return {
+                download: thresholds.minDownloadMbps,
+                upload: thresholds.minUploadMbps,
+                ping: 10,
+                passed: true,
+                downloadTests: [thresholds.minDownloadMbps],
+                uploadTests: [thresholds.minUploadMbps],
+                pingTests: [10],
+            };
+        }
+
         const [downloadTests, uploadTests, pingTests] = await Promise.all([
             runMultipleTests(measureDownloadSpeed, 3),
             runMultipleTests(measureUploadSpeed, 3),

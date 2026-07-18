@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fullstack SDET Case Study Submission</title>
+    <style>
+      :root {
+        --text: #172033;
+        --muted: #5f6b85;
+        --accent: #0f766e;
+        --border: #d7deea;
+        --surface: #f6f8fc;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Aptos", "Segoe UI", Arial, sans-serif;
+        color: var(--text);
+        background: white;
+        line-height: 1.45;
+      }
+
+      .page {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 44px 52px 56px;
+      }
+
+      h1, h2 {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 28px;
+        line-height: 1.2;
+      }
+
+      h2 {
+        font-size: 15px;
+        margin-bottom: 8px;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      p {
+        margin: 0;
+        font-size: 14px;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .hero {
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 20px;
+        margin-bottom: 28px;
+      }
+
+      .hero p {
+        margin-top: 10px;
+        color: var(--muted);
+      }
+
+      .repo {
+        display: inline-block;
+        margin-top: 14px;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--surface);
+        font-size: 13px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px 18px;
+      }
+
+      .card p + p,
+      .section p + p {
+        margin-top: 8px;
+      }
+
+      .section {
+        margin-top: 24px;
+      }
+
+      ul, ol {
+        margin: 10px 0 0 18px;
+        padding: 0;
+        font-size: 14px;
+      }
+
+      li + li {
+        margin-top: 6px;
+      }
+
+      .verdict {
+        margin-top: 24px;
+        padding: 18px;
+        border-radius: 14px;
+        border: 1px solid #f1c0b7;
+        background: #fff5f3;
+      }
+
+      .verdict strong {
+        color: var(--danger);
+      }
+
+      .footer {
+        margin-top: 26px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <h1>Fullstack SDET Case Study Submission</h1>
+        <p>
+          A focused audit, a committed quality system, and a release decision based on visible evidence.
+        </p>
+        <div class="repo">
+          Repository:
+          <a href="https://github.com/rachmatm/fullstack-sdet-case-study">https://github.com/rachmatm/fullstack-sdet-case-study</a>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <h2>Deliverables</h2>
+          <p><strong>Audit</strong>: <code>assessment/01-audit.md</code></p>
+          <p><strong>Quality System</strong>: <code>assessment/02-quality-system.md</code></p>
+          <p><strong>Release Decision</strong>: <code>assessment/03-release-decision.md</code></p>
+        </div>
+        <div class="card">
+          <h2>What Was Added</h2>
+          <p>PR body quality gate</p>
+          <p>Backend regression checks</p>
+          <p>Frontend build gate</p>
+          <p>Tag-based release verdict flow</p>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Key Improvements</h2>
+        <ul>
+          <li>Targeted regression coverage for login tenant-selection behavior, invite URL generation, and first session runtime seams.</li>
+          <li>Release-verdict automation committed into CI instead of kept as a manual review step.</li>
+          <li>Gemini hardening for multipart response parsing and safer portfolio regeneration.</li>
+          <li>Clear written evidence of what is fixed, what remains, and why the release call is still blocked.</li>
+        </ul>
+      </section>
+
+      <section class="verdict">
+        <h2>Current Release Call</h2>
+        <p><strong>Blocked</strong>.</p>
+        <p>
+          The strongest remaining concern is a <strong>P0 critical runtime risk</strong> in the live interview path:
+          the interview can terminate too early, leave a thin transcript, and produce unusable assessment output.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Most Important Next Move</h2>
+        <p>
+          Capture the actual <code>api</code> and <code>sidekiq</code> logs from one failed short interview and use that
+          evidence to turn the current P0 from a suspected runtime blocker into a confirmed root-cause finding.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Recommended Review Order</h2>
+        <ol>
+          <li><code>assessment/01-audit.md</code></li>
+          <li><code>assessment/02-quality-system.md</code></li>
+          <li><code>assessment/03-release-decision.md</code></li>
+          <li><code>.github/workflows/quality-gate.yml</code></li>
+        </ol>
+      </section>
+
+      <p class="footer">
+        Prepared for the Fullstack SDET case study submission. Updated July 17, 2026.
+      </p>
+    </main>
+  </body>
+</html>

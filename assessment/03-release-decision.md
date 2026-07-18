@@ -56,7 +56,33 @@ The following are real improvements and should count as completed work:
 
 ## Why The Release Is Still Blocked
 
-### B-001 `P1 Major` - Coverage is still too narrow
+### B-001 `P0 Critical` - Live interview can terminate too early and leave unusable assessment results
+
+Observed during manual testing:
+
+- the interview ended too early
+- the transcript was too thin
+- portfolio generation failed or produced weak skill levels
+
+Why this blocks release:
+
+- this is a failure in the core candidate-to-assessor product path
+- a candidate can complete only a partial interview while the platform still attempts to produce hiring artifacts from incomplete evidence
+- assessor trust in the result becomes unreliable if the session ends prematurely or the follow-on portfolio and fit-gap outputs degrade
+
+Likely contributing causes still under investigation:
+
+- Gemini websocket or runtime error
+- reconnect exhaustion
+- backend session termination with end reason `error`
+
+Important note:
+
+- these are currently suspected causes, not yet confirmed root causes
+- runtime logs from `api` and `sidekiq` are still needed to confirm the exact session-ending path
+- the next strongest move is to capture the actual `api` and `sidekiq` logs from one failed short interview and turn this `P0` from a suspected runtime blocker into a confirmed root-cause finding
+
+### B-002 `P1 Major` - Coverage is still too narrow
 
 The quality system is real, but it still covers only a small part of the platform.
 
@@ -72,7 +98,7 @@ Why this blocks release:
 
 - a green result from the current checks would still overstate release confidence
 
-### B-002 `P1 Major` - The repository still lacks a strong product source of truth
+### B-003 `P1 Major` - The repository still lacks a strong product source of truth
 
 The assessment artifacts help, but the repository still does not contain a durable product source of truth such as:
 
@@ -84,7 +110,7 @@ Why this blocks release:
 
 - release approval still depends too much on inference from code and setup docs
 
-### B-003 Operational Evidence Gap - Final passing-path proof still needs to stay visible
+### B-004 Operational Evidence Gap - Final passing-path proof still needs to stay visible
 
 The mechanism for passing and blocked PRs exists, and the tag-based release gate exists, but the final assessment story depends on keeping the proof visible:
 
@@ -110,8 +136,10 @@ The release call could move to `releasable` if the following evidence is added:
 1. final green CI proof on the passing branch remains visible
 2. blocked and passing PR examples remain visible
 3. the red-to-green history remains easy to inspect
-4. at least one more runtime-critical flow gains automated or direct verification
+4. the premature live-interview termination path is explained and stabilized with runtime evidence
 5. if a release tag is used for the submission, the tagged release-verdict run is visible
+
+The next strongest move before revisiting the release call is to capture the actual `api` and `sidekiq` logs from one failed short interview and use that evidence to convert the current `P0` from a suspected runtime blocker into a confirmed root-cause finding.
 
 ## Final Note
 

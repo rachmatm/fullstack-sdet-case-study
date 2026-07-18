@@ -80,3 +80,4 @@ Important note:
 - Focus especially on how CI/CD, test automation, and quality checks work together to reduce repetitive work while still exposing important edge cases and likely failure modes.
 - Work in the `/assessment` folder at the repo root for your written deliverables; code changes go in `api/` or `web/`.
 - See the case-study brief you were given for what to produce and how it is evaluated.
+- Som
